@@ -212,7 +212,7 @@ class RegeneratePresenter:
         cropped_image = temp_img[start_y:end_y, start_x:end_x]
 
         # Для отображения, что получилось
-        RegeneratePresenter.show_current_drawing(cropped_image)
+        # RegeneratePresenter.show_current_drawing(cropped_image)
         return cropped_image
 
     # Гистограмма для каждого квадратика
@@ -475,18 +475,20 @@ class RegeneratePresenter:
         x, y, w, h = cv2.boundingRect(mask_contours[0])
         cropped_img_for_drawing = img_for_drawing[y:y+h, x:x+w]
 
-        # output_image = RegeneratePresenter.generate_img_by_square_nums(
-        #     img_for_cut_regenerat, square_list_data_coord, regenerat_serment)
         output_path = os.path.join(output_dir, "output.png")
-        print(output_path)
-        # OpenCV uses BGR, but PIL expects RGB; convert if needed
-        # if len(output_image.shape) == 3 and output_image.shape[2] == 3:
         save_img = cv2.cvtColor(cropped_img_for_drawing, cv2.COLOR_BGR2RGB)
-        # else:
-        #     save_img = output_image
         pil_img = Image.fromarray(save_img)
         pil_img.save(output_path)
-        return output_path, img_path, equlid_r, regenerat_serment
+
+        cropped_potencial_regenerate = RegeneratePresenter.generate_img_by_square_nums(
+            img_for_cut_regenerat, square_list_data_coord, regenerat_serment)
+        regenerate_output_path = os.path.join(output_dir, "regenerat.png")
+        regenerate_save_image = cv2.cvtColor(
+            cropped_potencial_regenerate, cv2.COLOR_BGR2RGB)
+        regenerate_save_image_pil = Image.fromarray(regenerate_save_image)
+        regenerate_save_image_pil.save(regenerate_output_path)
+
+        return output_path, img_path, equlid_r, regenerat_serment, regenerate_output_path
 
     # model_for_analyze_regenerat = load_model('test_analyz_regenerat.h5')
 
