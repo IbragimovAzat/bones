@@ -111,6 +111,9 @@ class RegeneratePresenter:
         img_gradient = img_gradient.reshape(
             fig.canvas.get_width_height()[::-1] + (3,))
 
+        # img_rgba = np.asarray(fig.canvas.renderer.buffer_rgba())
+        # img_gradient = cv2.cvtColor(img_rgba, cv2.COLOR_RGBA2RGB)
+
         plt.close(fig)
         return img_gradient
 
@@ -125,61 +128,63 @@ class RegeneratePresenter:
     # Гистограмма для каждого квадратика
     # Функциональную роль не имеет
 
-    def show_hist_square(points_in_square, num, img):
-        intensities = []  # Интенсивность
-        for point in points_in_square:
-            x, y = point
-            # Предполагается, что изображение в оттенках серого и имеет один цветовой канал
-            intensity = img[y, x][0] / 255.0
-            intensities.append(intensity)
-        # print(intensities)
+    # def show_hist_square(points_in_square, num, img):
+    #     intensities = []  # Интенсивность
+    #     for point in points_in_square:
+    #         x, y = point
+    #         # Предполагается, что изображение в оттенках серого и имеет один цветовой канал
+    #         intensity = img[y, x][0] / 255.0
+    #         intensities.append(intensity)
+    #     # print(intensities)
 
-        # Вектор (x - интенсивность, y - частота)
-        intensity_frequencies = {0.1: 0, 0.2: 0, 0.3: 0,
-                                 0.4: 0, 0.5: 0, 0.6: 0, 0.7: 0, 0.8: 0, 0.9: 0, 1: 0}
-        for intensity in intensities:
-            intens = (round(intensity, 1))
-            # print(intens)
-            try:
-                intensity_frequencies[intens] = intensity_frequencies.get(
-                    intens, 0) + 1
-            except:
-                pass
-        intensity_frequencies1 = dict(sorted(intensity_frequencies.items()))
+    #     # Вектор (x - интенсивность, y - частота)
+    #     intensity_frequencies = {0.1: 0, 0.2: 0, 0.3: 0,
+    #                              0.4: 0, 0.5: 0, 0.6: 0, 0.7: 0, 0.8: 0, 0.9: 0, 1: 0}
+    #     for intensity in intensities:
+    #         intens = (round(intensity, 1))
+    #         # print(intens)
+    #         try:
+    #             intensity_frequencies[intens] = intensity_frequencies.get(
+    #                 intens, 0) + 1
+    #         except:
+    #             pass
+    #     intensity_frequencies1 = dict(sorted(intensity_frequencies.items()))
 
-        # print(f"{eqlid(intensity_frequencies1)}")
-        # print(intensity_frequencies1)
-        # print(list(intensity_frequencies1.values()))
-        # intensity_frequencies.to_csv('result.csv', index = False)
-        fig, ax = plt.subplots(figsize=(4, 3), dpi=100)
-        ax.hist(intensities, bins=256, range=(0.0, 1.0), fc='k', ec='k')
-        ax.set_xlabel("Значение интенсивности")
-        ax.set_ylabel("Частота")
-        ax.set_title(f'Гистограмма для квадрата {num}')
+    #     # print(f"{eqlid(intensity_frequencies1)}")
+    #     # print(intensity_frequencies1)
+    #     # print(list(intensity_frequencies1.values()))
+    #     # intensity_frequencies.to_csv('result.csv', index = False)
+    #     fig, ax = plt.subplots(figsize=(4, 3), dpi=100)
+    #     ax.hist(intensities, bins=256, range=(0.0, 1.0), fc='k', ec='k')
+    #     ax.set_xlabel("Значение интенсивности")
+    #     ax.set_ylabel("Частота")
+    #     ax.set_title(f'Гистограмма для квадрата {num}')
 
-        # Преобразование графика в изображение для более удобного вывода. Необязательно
-        fig.tight_layout()
-        fig.canvas.draw()
-        img_hist = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    #     # Преобразование графика в изображение для более удобного вывода. Необязательно
+    #     fig.tight_layout()
+    #     fig.canvas.draw()
+    #     img_hist = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+    #     # img_rgba = np.asarray(fig.canvas.renderer.buffer_rgba())
+    #     # img_hist = cv2.cvtColor(img_rgba, cv2.COLOR_RGBA2RGB)
 
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!
-        img_hist = img_hist.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    #     # !!!!!!!!!!!!!!!!!!!!!!!!!!
+    #     img_hist = img_hist.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
-        width, height = fig.canvas.get_width_height()
-        expected_size = width * height * 3
-        actual_size = img_hist.size
+    #     width, height = fig.canvas.get_width_height()
+    #     expected_size = width * height * 3
+    #     actual_size = img_hist.size
 
-        if actual_size != expected_size:
-            scale = int(np.sqrt(actual_size / expected_size))
-            img_hist = img_hist.reshape((height * scale, width * scale, 3))
-        else:
-            img_hist = img_hist.reshape((height, width, 3))
+    #     if actual_size != expected_size:
+    #         scale = int(np.sqrt(actual_size / expected_size))
+    #         img_hist = img_hist.reshape((height * scale, width * scale, 3))
+    #     else:
+    #         img_hist = img_hist.reshape((height, width, 3))
 
-        # width, height = fig.canvas.get_width_height()
-        # img_hist = img_hist.reshape((height, width, 3))
+    #     # width, height = fig.canvas.get_width_height()
+    #     # img_hist = img_hist.reshape((height, width, 3))
 
-        plt.close(fig)
-        return img_hist, RegeneratePresenter.eqlid(intensity_frequencies1)
+    #     plt.close(fig)
+    #     return img_hist, RegeneratePresenter.eqlid(intensity_frequencies1)
 
     # Для преобразования json разметки в удобный для работы формат контура
 
@@ -240,8 +245,8 @@ class RegeneratePresenter:
         intensity_frequencies1 = dict(sorted(intensity_frequencies.items()))
 
         #############################################
-        print(intensity_frequencies1)
-        print(f"{RegeneratePresenter.eqlid(intensity_frequencies1)}")
+        # print(intensity_frequencies1)
+        # print(f"{RegeneratePresenter.eqlid(intensity_frequencies1)}")
         # print(intensity_frequencies1)
         # print(list(intensity_frequencies1.values()))
         # intensity_frequencies.to_csv('result.csv', index = False)
@@ -255,6 +260,7 @@ class RegeneratePresenter:
         fig.tight_layout()
         fig.canvas.draw()
         img_hist = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        # img_hist = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # img_hist = img_hist.reshape(fig.canvas.get_width_height()[::-1] + (3,))
 
@@ -293,37 +299,38 @@ class RegeneratePresenter:
         # ax_orig.set_title('Исходное изображение')
         # ax_orig.axis('off')
 
-        ax_processed = fig.add_subplot(grid[1, 1])
-        ax_processed.imshow(cv2.cvtColor(img_for_drawing, cv2.COLOR_BGR2RGB))
-        ax_processed.set_title('Размеченное изображение')
-        ax_processed.axis('off')
+        # ax_processed = fig.add_subplot(grid[1, 1])
+        # ax_processed.imshow(cv2.cvtColor(img_for_drawing, cv2.COLOR_BGR2RGB))
+        # ax_processed.set_title('Размеченное изображение')
+        # ax_processed.axis('off')
 
         # new
         equlid_r = {i: 0 for i in range(len(square_points))}
 
         # Гистограммы для каждого квадрата
-        # for i, points_in_square in enumerate(square_points):
-        #     row = (i // num_cols) + 2
-        #     col = i % num_cols
-        #     ax_hist = fig.add_subplot(grid[row, col])
-        #
-        #     # new
-        #     img_hist, value = show_hist_square(points_in_square, i + 1, img)
-        #     equlid_r[i] += value
-        #
-        #     ax_hist.imshow(img_hist)
-        #     ax_hist.axis('off')
-
-        # Если только подсчёт equlid_r нужен, можно оставить такой блок:
         for i, points_in_square in enumerate(square_points):
-            _, value = RegeneratePresenter.show_hist_square(
+            row = (i // num_cols) + 2
+            col = i % num_cols
+            ax_hist = fig.add_subplot(grid[row, col])
+
+            # new
+            img_hist, value = RegeneratePresenter.show_hist_square(
                 points_in_square, i + 1, img)
             equlid_r[i] += value
+
+            ax_hist.imshow(img_hist)
+            ax_hist.axis('off')
+
+        # Если только подсчёт equlid_r нужен, можно оставить такой блок:
+        # for i, points_in_square in enumerate(square_points):
+        #     img, value = RegeneratePresenter.show_hist_square(
+        #         points_in_square, i + 1, img)
+        #     equlid_r[i] += value
 
         plt.tight_layout()
         # plt.show()
 
-        return equlid_r
+        return equlid_r, fig
 
     def search_regenerat_zone(equlid_r):
         potencial_regenerat_zone = []
@@ -468,12 +475,16 @@ class RegeneratePresenter:
             avg_color_in_square_points.append(
                 RegeneratePresenter.calculate_average_color(_, img))
 
-        equlid_r = RegeneratePresenter.create_regenerat_statistic(
+        equlid_r, squares = RegeneratePresenter.create_regenerat_statistic(
             img, img_for_drawing, avg_color_in_square_points, square_points)
         regenerat_serment = RegeneratePresenter.search_regenerat_zone(equlid_r)
 
         x, y, w, h = cv2.boundingRect(mask_contours[0])
         cropped_img_for_drawing = img_for_drawing[y:y+h, x:x+w]
+
+        # squares
+        squares_path = os.path.join(output_dir, "squares.png")
+        squares.savefig(squares_path, format="jpg", dpi=300)
 
         output_path = os.path.join(output_dir, "output.png")
         save_img = cv2.cvtColor(cropped_img_for_drawing, cv2.COLOR_BGR2RGB)
@@ -488,7 +499,9 @@ class RegeneratePresenter:
         regenerate_save_image_pil = Image.fromarray(regenerate_save_image)
         regenerate_save_image_pil.save(regenerate_output_path)
 
-        return output_path, img_path, equlid_r, regenerat_serment, regenerate_output_path
+        # squares
+
+        return output_path, img_path, equlid_r, regenerat_serment, regenerate_output_path, squares_path
 
     # model_for_analyze_regenerat = load_model('test_analyz_regenerat.h5')
 
