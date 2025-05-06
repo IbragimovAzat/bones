@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        <p class="fs-5 fw-semibold">Регенерат обнаружен в квадратах: {{ result[0][1] }}</p>
+        <p class="fs-5 fw-semibold">Вердикт: {{ result[0][2] }}</p>
+    </div>
+
+    <div class="row mb-4 g-4">
+        <div class="col-md-6 text-center">
+            <figure>
+                <img src="{{ '/' + result[0][0] }}" alt="Исходное изображение" class="img-fluid rounded shadow" style="max-width: 600px; max-height: 400px; width: auto; height: auto;">
+                <figcaption class="mt-2">Исходное изображение</figcaption>
+            </figure>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -13,6 +13,7 @@ import shutil
 from kb import db, Object, Cultures
 from Regenerat.RegenerateRouter import RegenerateRouter
 from Regenerat.RegeneratePresenter import RegeneratePresenter
+from kernelLine.KernelLinePresenter import KernelLinePresenter
 import datetime
 
 
@@ -214,7 +215,7 @@ def login():
 
 
 @app.route('/funcNew/', methods=['GET', 'POST'])
-def funcNew():
+def getGolenLine():
     if request.method == "POST":
         if 'file' not in request.files:
             flash('Файл не загружен')
@@ -226,25 +227,36 @@ def funcNew():
         if allowed_file(file.filename) is False:
             flash('Файл не загружен. Поддерживаемые форматы: png, jpg, jpeg')
             return redirect(request.url)
+
+        temp_dir = os.path.join(
+            'static', app.config['UPLOAD_FOLDER'], f'session_golenLine')
+
+        os.makedirs(temp_dir, exist_ok=True)
+
+        # Очистка временной папки перед загрузкой новых файлов
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                flash(f'Ошибка при удалении файла {filename}: {e}')
+
         if file and allowed_file(file.filename):
             flash('Файл успешно загружен')
             filename = secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file_path = os.path.join(temp_dir, filename)
             file.save(file_path)
             try:
-                # Вызываем основную функцию для обработки изображения
-                result = main(file_path)
-            # Делаем что-то с результатом, например, передаем его в шаблон
-                print(result)
-                return render_template('results.html', result=result)
+                result = KernelLinePresenter.getGolenLine(temp_dir, file_path)
+                return render_template('results_golen.html', result=result)
             except Exception as e:
                 flash(f'Ошибка при обработке изображения: {e}')
-                # Если произошла ошибка, перенаправляем обратно
                 return redirect(request.url)
     else:
         return render_template('funcNew.html')
-
-# Поиск регенерата
 
 
 @app.route('/regenerat/golen', methods=['GET', 'POST'])
