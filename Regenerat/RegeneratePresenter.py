@@ -483,8 +483,8 @@ class RegeneratePresenter:
         cropped_img_for_drawing = img_for_drawing[y:y+h, x:x+w]
 
         # squares
-        squares_path = os.path.join(output_dir, "squares.png")
-        squares.savefig(squares_path, format="jpg", dpi=300)
+        # squares_path = os.path.join(output_dir, "squares.png")
+        # squares.savefig(squares_path, format="jpg", dpi=300)
 
         output_path = os.path.join(output_dir, "output.png")
         save_img = cv2.cvtColor(cropped_img_for_drawing, cv2.COLOR_BGR2RGB)
@@ -501,7 +501,7 @@ class RegeneratePresenter:
 
         # squares
 
-        return output_path, img_path, equlid_r, regenerat_serment, regenerate_output_path, squares_path
+        return output_path, img_path, equlid_r, regenerat_serment, regenerate_output_path
 
     # model_for_analyze_regenerat = load_model('test_analyz_regenerat.h5')
 
