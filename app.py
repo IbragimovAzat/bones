@@ -247,8 +247,8 @@ def funcNew():
 # Поиск регенерата
 
 
-@app.route('/regenerat/', methods=['GET', 'POST'])
-def fetchRegenerate():
+@app.route('/regenerat/golen', methods=['GET', 'POST'])
+def fetchRegenerateGolen():
     if request.method == "POST":
         image_files = request.files.getlist('images')
         annotation_files = request.files.getlist('annotations')
@@ -308,8 +308,86 @@ def fetchRegenerate():
                     f'Файл {img.filename} не является поддерживаемым изображением')
 
         try:
+            model_name = "golen.pt"
             result = RegenerateRouter.run_regenerate_analysis(
-                temp_dir, img_path, annot_path)
+                temp_dir, img_path, annot_path, model_name)
+            results.append(result)
+        except Exception as e:
+            flash(f'Ошибка при обработке: {e}')
+
+        if results:
+            flash('Файлы успешно загружены и обработаны')
+            return render_template('results.html', result=results)
+        else:
+            return redirect(request.url)
+    else:
+        return render_template('regeneratTemplate.html')
+
+
+@app.route('/regenerat/bedro', methods=['GET', 'POST'])
+def fetchRegenerateBedro():
+    if request.method == "POST":
+        image_files = request.files.getlist('images')
+        annotation_files = request.files.getlist('annotations')
+
+        if not image_files or all(f.filename == '' for f in image_files):
+            flash('Изображения не выбраны')
+            return redirect(request.url)
+
+        # Создаем временную директорию с меткой времени
+        # timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = 111
+        # temp_dir = os.path.join(
+        #     app.config['UPLOAD_FOLDER'], f'session_{timestamp}')
+        temp_dir = os.path.join(
+            'static', app.config['UPLOAD_FOLDER'], f'session_{timestamp}')
+
+        os.makedirs(temp_dir, exist_ok=True)
+
+        annotation_map = {}
+
+        img_path = ""
+        annot_path = ""
+
+        # Очистка временной папки перед загрузкой новых файлов
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                flash(f'Ошибка при удалении файла {filename}: {e}')
+
+        # Сохраняем JSON-файлы с аннотациями в временную папку (если они загружены)
+        for annot in annotation_files:
+            if annot and annot.filename != '':
+                if annot.filename.endswith('.json'):
+                    annot_name = secure_filename(annot.filename)
+                    annot_path = os.path.join(temp_dir, annot_name)
+                    annot.save(annot_path)
+                    annotation_map[os.path.splitext(
+                        annot_name)[0]] = annot_path
+                else:
+                    flash(f'Файл {annot.filename} не является JSON')
+
+        results = []
+
+        # Сохраняем изображения в временную папку
+        for img in image_files:
+            if img and allowed_file(img.filename):
+                img_name = secure_filename(img.filename)
+                img_path = os.path.join(temp_dir, img_name)
+                img.save(img_path)
+            else:
+                flash(
+                    f'Файл {img.filename} не является поддерживаемым изображением')
+
+        try:
+            model_name = "bedro.pt"
+            result = RegenerateRouter.run_regenerate_analysis(
+                temp_dir, img_path, annot_path, model_name)
             results.append(result)
         except Exception as e:
             flash(f'Ошибка при обработке: {e}')

@@ -13,8 +13,8 @@ from Regenerat.RegeneratePresenter import RegeneratePresenter
 
 
 class RegenerateRouter:
-    def run_regenerate_analysis(folderPath, img_path, annot_path):
-        return RegeneratePresenter.handleData(folderPath, img_path, annot_path)
+    def run_regenerate_analysis(folderPath, img_path, annot_path, model_name):
+        return RegeneratePresenter.handleData(folderPath, img_path, annot_path, model_name)
 
         # plt.switch_backend('Agg')
 

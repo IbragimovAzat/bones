@@ -1,18 +1,15 @@
-import shutil
-from datetime import datetime
-from matplotlib import image
-import os
-from ultralytics import YOLO
-import math
-from matplotlib import pyplot as plt
-import numpy as np
-import cv2
-import random
 import json
-import logging
-from tensorflow.keras.models import load_model
-logger = logging.getLogger(__name__)
+import random
+import cv2
+import numpy as np
+from matplotlib import pyplot as plt
+import math
+from ultralytics import YOLO
+import os
 
+from matplotlib import image
+from datetime import datetime
+import shutil
 
 # Результат применения модели к изображению
 
@@ -86,11 +83,15 @@ class RegeneratePresenter:
         return ax
 
     def calculate_average_color(points, img):
-        if not points:
+        total_points = len(points)
+        if total_points == 0:
             return (0, 0, 0)
-        coords = np.array(points)
-        colors = img[coords[:, 1], coords[:, 0]]
-        return tuple(colors.mean(axis=0).astype(int))
+        total_b = sum([img[y, x][0] for x, y in points])
+        total_g = sum([img[y, x][1] for x, y in points])
+        total_r = sum([img[y, x][2] for x, y in points])
+        average_color = (total_b // total_points, total_g //
+                         total_points, total_r // total_points)
+        return average_color
 
     # Рисование градиента на основании среднего цвета каждого квадрата
     # Функция нужна для графического отображения. Функционально значения не иммет
@@ -222,15 +223,20 @@ class RegeneratePresenter:
     # Гистограмма для каждого квадратика
 
     def show_hist_square(points_in_square, num, img):
-        intensities = []
+        intensities = []  # Интенсивность
         for point in points_in_square:
             x, y = point
+            # Предполагается, что изображение в оттенках серого и имеет один цветовой канал
             intensity = img[y, x][0] / 255.0
             intensities.append(intensity)
+        # print(intensities)
+
+        # Вектор (x - интенсивность, y - частота)
         intensity_frequencies = {0.1: 0, 0.2: 0, 0.3: 0,
                                  0.4: 0, 0.5: 0, 0.6: 0, 0.7: 0, 0.8: 0, 0.9: 0, 1: 0}
         for intensity in intensities:
             intens = (round(intensity, 1))
+            # print(intens)
             try:
                 intensity_frequencies[intens] = intensity_frequencies.get(
                     intens, 0) + 1
@@ -238,20 +244,38 @@ class RegeneratePresenter:
                 pass
         intensity_frequencies1 = dict(sorted(intensity_frequencies.items()))
 
+        #############################################
+        # print(intensity_frequencies1)
+        # print(f"{RegeneratePresenter.eqlid(intensity_frequencies1)}")
+        # print(intensity_frequencies1)
+        # print(list(intensity_frequencies1.values()))
+        # intensity_frequencies.to_csv('result.csv', index = False)
         fig, ax = plt.subplots(figsize=(4, 3), dpi=100)
         ax.hist(intensities, bins=256, range=(0.0, 1.0), fc='k', ec='k')
         ax.set_xlabel("Значение интенсивности")
         ax.set_ylabel("Частота")
         ax.set_title(f'Гистограмма для квадрата {num}')
 
+        # Преобразование графика в изображение для более удобного вывода. Необязательно
         fig.tight_layout()
         fig.canvas.draw()
-        img_data = fig.canvas.tostring_rgb()
+        img_hist = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        # img_hist = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # img_hist = img_hist.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
         width, height = fig.canvas.get_width_height()
-        img_array = np.frombuffer(
-            img_data, dtype=np.uint8).reshape((height, width, 3))
+        expected_size = width * height * 3
+        actual_size = img_hist.size
+
+        if actual_size != expected_size:
+            scale = int(np.sqrt(actual_size / expected_size))
+            img_hist = img_hist.reshape((height * scale, width * scale, 3))
+        else:
+            img_hist = img_hist.reshape((height, width, 3))
+
         plt.close(fig)
-        return img_array, RegeneratePresenter.eqlid(intensity_frequencies1)
+        return img_hist, RegeneratePresenter.eqlid(intensity_frequencies1)
 
     def create_regenerat_statistic(img, img_for_drawing, avg_color_in_square_points, square_points):
         # Разметка для полотна рисования
@@ -370,7 +394,7 @@ class RegeneratePresenter:
 
         # Предполагаем, что интересует только первый результат
         result = results[0]
-        logger.debug(result)
+        print(result)
 
         if result.boxes is None or result.boxes.xyxy is None or len(result.boxes) <= 0:
             raise Exception(
@@ -410,7 +434,7 @@ class RegeneratePresenter:
 
         return json_path
 
-    def handleData(workDirectory, img_path, json_path, model_name):
+    def handleData(workDirectory, img_path, json_path):
         import cv2
         from PIL import Image
         # Ensure output directory exists
@@ -420,13 +444,14 @@ class RegeneratePresenter:
 
         if json_path == '':
             json_path = RegeneratePresenter.get_annotated_json(
-                img_path, workDirectory, 'static/neuralModels/'+model_name)
+                img_path, workDirectory, 'static/neuralModels/golen.pt')
 
         avg_color_in_square_points = []
         img = cv2.imread(img_path)
 
         img_for_drawing = img.copy()  # копия, чтобы не портить исходный рисунок
         num_squares, num_points = 20, 5000  # номер квадратов и номер точек
+        # массив точек внутри контура их средний цвет
         square_points, avg_color_in_square_points = [], []
 
         # получение контура из json разметки
@@ -438,32 +463,32 @@ class RegeneratePresenter:
             mask_contours], -1, (255, 255, 255), thickness=cv2.FILLED)
 
         # Используем маску для копирования только пикселей внутри контура
-        img_for_drawing_masked = cv2.bitwise_and(img.copy(), black_background)
-        img_for_cut_regenerat = img_for_drawing_masked.copy()
+        img_for_drawing = cv2.bitwise_and(img.copy(), black_background)
+        img_for_cut_regenerat = img_for_drawing.copy()
 
         # Получаем координаты квадратов и точки внутри квадрата
         square_list_data_coord, square_points = RegeneratePresenter.draw_points_in_squares_contours(
-            img_for_drawing_masked, mask_contours, num_squares, num_points)
+            img_for_drawing, mask_contours, num_squares, num_points)
 
         for _ in square_points:
             avg_color_in_square_points.append(
                 RegeneratePresenter.calculate_average_color(_, img))
 
         equlid_r, squares = RegeneratePresenter.create_regenerat_statistic(
-            img, img_for_drawing_masked, avg_color_in_square_points, square_points)
+            img, img_for_drawing, avg_color_in_square_points, square_points)
         regenerat_serment = RegeneratePresenter.search_regenerat_zone(equlid_r)
 
         x, y, w, h = cv2.boundingRect(mask_contours[0])
-        # cropped_img_for_drawing = img_for_drawing_masked[y:y+h, x:x+w]
+        cropped_img_for_drawing = img_for_drawing[y:y+h, x:x+w]
 
         # squares
         squares_path = os.path.join(output_dir, "squares.png")
         squares.savefig(squares_path, format="jpg", dpi=100)
 
-        # output_path = os.path.join(output_dir, "output.png")
-        # save_img = cv2.cvtColor(cropped_img_for_drawing, cv2.COLOR_BGR2RGB)
-        # pil_img = Image.fromarray(save_img)
-        # pil_img.save(output_path)
+        output_path = os.path.join(output_dir, "output.png")
+        save_img = cv2.cvtColor(cropped_img_for_drawing, cv2.COLOR_BGR2RGB)
+        pil_img = Image.fromarray(save_img)
+        pil_img.save(output_path)
 
         cropped_potencial_regenerate = RegeneratePresenter.generate_img_by_square_nums(
             img_for_cut_regenerat, square_list_data_coord, regenerat_serment)
@@ -473,17 +498,10 @@ class RegeneratePresenter:
         regenerate_save_image_pil = Image.fromarray(regenerate_save_image)
         regenerate_save_image_pil.save(regenerate_output_path)
 
-        class_verdict = RegeneratePresenter.get_verdict_of_result(
-            cropped_potencial_regenerate)
+        # squares
 
-        return img_path, equlid_r, regenerat_serment, regenerate_output_path, squares_path, class_verdict
+        return output_path, img_path, equlid_r, regenerat_serment, regenerate_output_path, squares_path
 
-    def get_verdict_of_result(cropped_potencial_regenerate):
-        model = load_model('static/neuralModels/test_analyz_regenerat.h5')
-        distances, verdict = RegeneratePresenter.analyze_patology_regenert(
-            cropped_potencial_regenerate, model, 3)
-        class_names = ['полость', 'норма', 'исчерченность']
-        if (verdict >= 0 and verdict < 3):
-            return 'класс ' + str(verdict) + ' - ' + class_names[verdict]
-        else:
-            return "не определено"
+    # model_for_analyze_regenerat = load_model('test_analyz_regenerat.h5')
+
+    # cropped_potencial_regenerate

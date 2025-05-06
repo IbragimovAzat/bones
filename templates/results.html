@@ -1,34 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Результат обработки изображения</title>
-</head>
-<body>
-    <div style="display: flex; gap: 20px;">
-        <figure>
-            <img src="{{"/"+result[0][0] }}" alt="Обработанное изображение" style="max-width: 600px; max-height: 400px; width: auto; height: auto;">
-            <figcaption>Результат обработки изображения</figcaption>
-        </figure>
-        <figure>
-            <img src="{{"/"+result[0][1] }}" alt="Исходное изображение" style="max-width: 600px; max-height: 400px; width: auto; height: auto;">
-            <figcaption>Исходное изображение</figcaption>
-        </figure>
-        <figure>
-            <img src="{{"/"+result[0][4] }}" alt="Обработанное изображение" style="max-width: 600px; max-height: 400px; width: auto; height: auto;">
-            <figcaption>Регенерат</figcaption>
-        </figure>
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4">
+        <p class="fs-5 fw-semibold">Регенерат обнаружен в квадратах: {{ result[0][2] }}</p>
+        <p class="fs-5 fw-semibold">Вердикт: {{ result[0][5] }}</p>
     </div>
 
-    <div style="display: flex; gap: 20px;">
-        <figure>
-            <img src="{{"/"+result[0][5] }}" alt="Обработанное изображение" style="max-width: 600px; max-height: 400px; width: auto; height: auto;">
-            <figcaption>Гистограммы</figcaption>
-        </figure>
+    <div class="row mb-4 g-4">
+        <div class="col-md-6 text-center">
+            <figure>
+                <img src="{{ '/' + result[0][0] }}" alt="Исходное изображение" class="img-fluid rounded shadow" style="max-width: 600px; max-height: 400px; width: auto; height: auto;">
+                <figcaption class="mt-2">Исходное изображение</figcaption>
+            </figure>
+        </div>
+        <div class="col-md-6 text-center">
+            <figure>
+                <img src="{{ '/' + result[0][3] }}" alt="Обработанное изображение" class="img-fluid rounded shadow" style="max-width: 600px; max-height: 400px; width: auto; height: auto;">
+                <figcaption class="mt-2">Регенерат</figcaption>
+            </figure>
+        </div>
     </div>
 
-    <p>equlid_r: {{result[0][2] }}</p>
-    <p>regenerat_segment: {{result[0][3] }}</p>
-</body>
-</html>
+    <div class="row">
+        <div class="col text-center">
+            <figure>
+                <img src="{{ '/' + result[0][4] }}" alt="Гистограммы" class="img-fluid rounded shadow">
+                <figcaption class="mt-2">Гистограммы</figcaption>
+            </figure>
+        </div>
+    </div>
+</div>
+{% endblock %}

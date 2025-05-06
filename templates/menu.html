@@ -1,62 +1,69 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container px-4 py-5 ">
-        <div class="card mb-10 rounded-3 shadow-sm px-4 py-3 border-primary">
-            <h2 class="pb-2 border-bottom"></h2>
-            <small class="text-body-secondary fw-bold"></small>
-            <p></p>
-            <div class="row">
-                <div class="col">
-                    <div class="card mb-4 rounded-3 shadow-sm px-4 py-3 border-primary">
-                        <div class="card-header py-3">
-                            <h4><a class="my-0 fw-normal" href="/regenerat/">Поиск регенерата</a></h4>
-                        </div>
-                        <p></p>
-                        <div class="col d-flex align-items-start" >
-                            <div>
-                                <center><img src="/static/gibbs/func.png" alt="Image" width="200" height="200" ></center>
-                            </div>
-                            <div class="col">
-                            <p> 1. Загрузка фото </p>
-                             <ul>
-                                <li>Вырезается кость</li>
-                                <li>На косте рисуются квадраты</li>
-                                <li>Находится среднее пикселей и определяется зона потенциального регенерата</li>
-                             </ul>
-                            <p>2. Выдача регенерата</p>
-                            <ul>
-                            <li>Склейка сегментов, подходящих под условие</li>
-                            <li>Регенерат передается на анализ</ul>
-                            <li>Выдается % найденных патологий</li>
-                            <li>В отдельных переменных находятся результаты обработки</li>
-                            </ul>
-                            </div>
-                        </div>
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold">Выберите действие</h2>
+        <p class="text-muted">Инструменты для анализа изображений костной ткани</p>
+    </div>
+
+    <div class="d-flex flex-row gap-4 justify-content-center flex-wrap">
+        <div class="col-12 col-md">
+            <a href="/regenerat/golen" class="text-decoration-none d-block">
+                <div class="card h-100 rounded shadow text-dark">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="card-title mb-0">Голень — поиск регенерата</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="/static/gibbs/n1.jpg" alt="Голень" class="img-fluid rounded mb-3" style="max-height: 200px;">
+                        <h6>1. Загрузка фото</h6>
+                        <ul class="text-start small">
+                            <li>Вырезается кость</li>
+                            <li>На кости рисуются квадраты</li>
+                            <li>Находится среднее пикселей и определяется зона потенциального регенерата</li>
+                        </ul>
                     </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col">
-                    <div class="card mb-4 rounded-3 shadow-sm px-4 py-3 border-primary">
-                        <div class="card-header py-3">
-                            <h4><a class="my-0 fw-normal" href="/funcNew/">Построение линии</a></h4>
-                        </div>
-                        <p></p>
-                        <div class="col d-flex align-items-start" >
-                            <div>
-                                <center><img src="/static/gibbs/func.png" alt="Image" width="200" height="200" ></center>
-                            </div>
-                            <div class="col">
-                                <p>Описание</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            </a>
         </div>
-    <p></p>
+
+        <div class="col-12 col-md">
+            <a href="/regenerat/bedro" class="text-decoration-none d-block">
+                <div class="card h-100 rounded shadow text-dark">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="card-title mb-0">Бедро — поиск регенерата</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="/static/gibbs/bedro.jpg" alt="Бедро" class="img-fluid rounded mb-3" style="max-height: 200px;">
+                        <h6>Загрузка фото</h6>
+                        <ul class="text-start small">
+                            <li>Вырезается кость</li>
+                            <li>На кости рисуются квадраты</li>
+                            <li>Находится среднее пикселей и определяется зона потенциального регенерата</li>
+                        </ul>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-12 col-md">
+            <a href="/funcNew/" class="text-decoration-none d-block">
+                <div class="card h-100 rounded shadow text-dark">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="card-title mb-0">Построение линии</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="/static/gibbs/func.png" alt="Функция" class="img-fluid rounded mb-3" style="max-height: 200px;">
+                        <h6>Загрузка фото</h6>
+                        <ul class="text-start small">
+                            <li>Вырезается кость</li>
+                            <li>На кости рисуются квадраты</li>
+                            <li>Находится среднее пикселей и определяется зона потенциального регенерата</li>
+                        </ul>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
 </div>
-
-
 {% endblock %}
