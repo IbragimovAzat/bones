@@ -20,7 +20,7 @@ db.init_app(app)
 
 @app.before_request
 def create_tables():
-    init_db()
+    # init_db()
     # update_db()
     db.create_all()
 
@@ -401,7 +401,7 @@ def fetchRegenerateBedro():
                     f'Файл {img.filename} не является поддерживаемым изображением')
 
         try:
-            model_name = "bedro.onnx"
+            model_name = "bedro.pt"
             result = RegenerateRouter.run_regenerate_analysis(
                 temp_dir, img_path, annot_path, model_name)
             results.append(result)
