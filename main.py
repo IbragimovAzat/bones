@@ -1,5 +1,3 @@
-
-import torch
 import cv2
 from matplotlib import image
 from matplotlib import pyplot as plt
@@ -161,6 +159,7 @@ def getBorderPositions(points):
     print(f"Минимальная точка: {min_point}")
     print(f"Максимальная точка: {max_point}")
 
+
 def getPercentHeight(topPoint, bottomPoint):
     """
     Получает отступ для кости
@@ -169,6 +168,7 @@ def getPercentHeight(topPoint, bottomPoint):
     :return:
     """
     return abs(topPoint[1] - bottomPoint[1])*0.15
+
 
 def getCenterPointsOfContour(points, topPoint, bottomPoint, margin):
     """
@@ -192,6 +192,7 @@ def getCenterPointsOfContour(points, topPoint, bottomPoint, margin):
                 yContourPoints.append(r1[1])
 
     return contourPoints, yContourPoints
+
 
 def getBreakPointsOfGroup(sliceContour):
     """
@@ -224,6 +225,7 @@ def getMinPointsBreak(group):
             minPoint = point
     return minPoint
 
+
 def getMinMaxCenterContourPoints(contourPoints, yContourPoints):
     """
     Ищет наименьшую и наивысшую точки из центральных точек
@@ -237,6 +239,7 @@ def getMinMaxCenterContourPoints(contourPoints, yContourPoints):
         if i[1] == max(yContourPoints):
             bottomPoint = i
     return topPoint, bottomPoint
+
 
 def getLinePoints(breakPoint, topPoint, bottomPoint, density):
     """
@@ -289,13 +292,16 @@ def getBoundsNew(imageName):
         for box in result.masks.xy:
             output.append(box.tolist())
     output.sort(key=lambda point: (point[0], point[1]))
-    output_filtered = [output[0][i] for i in range(len(output[0])) if i % 1 == 0]
+    output_filtered = [output[0][i]
+                       for i in range(len(output[0])) if i % 1 == 0]
     source_directory = 'runs/segment'
     new_folder_name = 'segment_' + str(random.randint(1000, 9999))
     target_directory = os.path.join('static', new_folder_name)
     shutil.move(source_directory, target_directory)
 
     return output_filtered, new_folder_name
+
+
 def main(imageName):
     plt.switch_backend('Agg')
 
@@ -343,5 +349,3 @@ def main(imageName):
 #     print('Линия входит в границу кости')
 # else:
 #     print('Линия не входит в границу кости')
-
-

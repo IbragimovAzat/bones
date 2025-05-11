@@ -1,8 +1,6 @@
-import shutil
-from datetime import datetime
-from matplotlib import image
 import os
 from ultralytics import YOLO
+import onnxruntime as ort
 import math
 from matplotlib import pyplot as plt
 import numpy as np
@@ -11,10 +9,55 @@ import random
 import json
 import logging
 from tensorflow.keras.models import load_model
+from database.models import db, User
 logger = logging.getLogger(__name__)
 
 
-# Результат применения модели к изображению
+class ONNXYOLO:
+    @staticmethod
+    def run_yolo_onnx(image_path, model_path, conf_threshold=0.25):
+        image = cv2.imread(image_path)
+        orig_h, orig_w = image.shape[:2]
+
+        # Подготовка изображения
+        img = cv2.resize(image, (640, 640))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = img.transpose(2, 0, 1)  # HWC -> CHW
+        img = np.expand_dims(img, axis=0).astype(np.float32) / 255.0
+
+        session = ort.InferenceSession(model_path)
+        input_name = session.get_inputs()[0].name
+        outputs = session.run(None, {input_name: img})
+
+        output = outputs[0]  # output0: [1, 37, 8400]
+        predictions = output[0].transpose(1, 0)  # [8400, 37]
+
+        results = []
+        for det in predictions:
+            x, y, w, h = det[:4]
+            obj_conf = det[4]
+            class_scores = det[5:]
+
+            class_id = np.argmax(class_scores)
+            class_conf = class_scores[class_id]
+            conf = obj_conf * class_conf
+
+            if conf < conf_threshold:
+                continue
+
+            # YOLO формат bbox: center x/y + width/height → преобразуем в x1, y1, x2, y2
+            x1 = int((x - w / 2) / 640 * orig_w)
+            y1 = int((y - h / 2) / 640 * orig_h)
+            x2 = int((x + w / 2) / 640 * orig_w)
+            y2 = int((y + h / 2) / 640 * orig_h)
+
+            results.append({
+                "bbox": [x1, y1, x2, y2],
+                "conf": float(conf),
+                "class_id": int(class_id)
+            })
+
+        return results
 
 
 class RegeneratePresenter:
@@ -92,9 +135,6 @@ class RegeneratePresenter:
         colors = img[coords[:, 1], coords[:, 0]]
         return tuple(colors.mean(axis=0).astype(int))
 
-    # Рисование градиента на основании среднего цвета каждого квадрата
-    # Функция нужна для графического отображения. Функционально значения не иммет
-
     def show_current_gradient(avg_color_in_square_points):
         fig, ax = plt.subplots(1, 1, figsize=(4, 2), dpi=100)
         for i, color in enumerate(avg_color_in_square_points):
@@ -110,9 +150,6 @@ class RegeneratePresenter:
         img_gradient = img_gradient.reshape(
             fig.canvas.get_width_height()[::-1] + (3,))
 
-        # img_rgba = np.asarray(fig.canvas.renderer.buffer_rgba())
-        # img_gradient = cv2.cvtColor(img_rgba, cv2.COLOR_RGBA2RGB)
-
         plt.close(fig)
         return img_gradient
 
@@ -123,69 +160,6 @@ class RegeneratePresenter:
         keys = list(dictary.keys())
 
         return math.sqrt(np.sum([a*b for a, b in zip(np.array(values) / np.sum(np.array(values)), np.square(keys))]))
-
-    # Гистограмма для каждого квадратика
-    # Функциональную роль не имеет
-
-    # def show_hist_square(points_in_square, num, img):
-    #     intensities = []  # Интенсивность
-    #     for point in points_in_square:
-    #         x, y = point
-    #         # Предполагается, что изображение в оттенках серого и имеет один цветовой канал
-    #         intensity = img[y, x][0] / 255.0
-    #         intensities.append(intensity)
-    #     # print(intensities)
-
-    #     # Вектор (x - интенсивность, y - частота)
-    #     intensity_frequencies = {0.1: 0, 0.2: 0, 0.3: 0,
-    #                              0.4: 0, 0.5: 0, 0.6: 0, 0.7: 0, 0.8: 0, 0.9: 0, 1: 0}
-    #     for intensity in intensities:
-    #         intens = (round(intensity, 1))
-    #         # print(intens)
-    #         try:
-    #             intensity_frequencies[intens] = intensity_frequencies.get(
-    #                 intens, 0) + 1
-    #         except:
-    #             pass
-    #     intensity_frequencies1 = dict(sorted(intensity_frequencies.items()))
-
-    #     # print(f"{eqlid(intensity_frequencies1)}")
-    #     # print(intensity_frequencies1)
-    #     # print(list(intensity_frequencies1.values()))
-    #     # intensity_frequencies.to_csv('result.csv', index = False)
-    #     fig, ax = plt.subplots(figsize=(4, 3), dpi=100)
-    #     ax.hist(intensities, bins=256, range=(0.0, 1.0), fc='k', ec='k')
-    #     ax.set_xlabel("Значение интенсивности")
-    #     ax.set_ylabel("Частота")
-    #     ax.set_title(f'Гистограмма для квадрата {num}')
-
-    #     # Преобразование графика в изображение для более удобного вывода. Необязательно
-    #     fig.tight_layout()
-    #     fig.canvas.draw()
-    #     img_hist = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-    #     # img_rgba = np.asarray(fig.canvas.renderer.buffer_rgba())
-    #     # img_hist = cv2.cvtColor(img_rgba, cv2.COLOR_RGBA2RGB)
-
-    #     # !!!!!!!!!!!!!!!!!!!!!!!!!!
-    #     img_hist = img_hist.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-
-    #     width, height = fig.canvas.get_width_height()
-    #     expected_size = width * height * 3
-    #     actual_size = img_hist.size
-
-    #     if actual_size != expected_size:
-    #         scale = int(np.sqrt(actual_size / expected_size))
-    #         img_hist = img_hist.reshape((height * scale, width * scale, 3))
-    #     else:
-    #         img_hist = img_hist.reshape((height, width, 3))
-
-    #     # width, height = fig.canvas.get_width_height()
-    #     # img_hist = img_hist.reshape((height, width, 3))
-
-    #     plt.close(fig)
-    #     return img_hist, RegeneratePresenter.eqlid(intensity_frequencies1)
-
-    # Для преобразования json разметки в удобный для работы формат контура
 
     def reverse_json_np(filename):
         with open(filename, 'r') as f:
@@ -215,8 +189,6 @@ class RegeneratePresenter:
         start_x, start_y, end_x, end_y = generate_coord
         cropped_image = temp_img[start_y:end_y, start_x:end_x]
 
-        # Для отображения, что получилось
-        # RegeneratePresenter.show_current_drawing(cropped_image)
         return cropped_image
 
     # Гистограмма для каждого квадратика
@@ -323,37 +295,73 @@ class RegeneratePresenter:
         return regenerat_serment
 
     def analyze_patology_regenert(img_array, model, num_classes):
-        # # Загрузка и подготовка изображения
-        # #img = load_img(image_path, target_size=(img_width, img_height), color_mode='grayscale')
-        # img_array = img_array / 255.0  # Нормализация
-        # img_array = np.expand_dims(img_array, axis=0)  # Добавление размерности
-
-        # # Предсказание
-        # predictions = model.predict(img_array)
-        # distances = np.linalg.norm(predictions - np.eye(num_classes), axis=1)  # Расстояние до каждого класса
-        # verdict = np.argmax(predictions)  # Вердикт по классу
-
-        # return distances, verdict
 
         img_array = cv2.resize(img_array, (128, 128))  # Измените на (128, 128)
 
         if img_array.shape[-1] == 3:  # Проверка на наличие 3 каналов
             img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
 
-        # Изменение формы изображения
-        img_array = np.expand_dims(img_array, axis=-1)  # Добавление канала
-        img_array = img_array / 255.0  # Нормализация
-        img_array = np.expand_dims(img_array, axis=0)  # Добавление размерности
+        img_array = np.expand_dims(img_array, axis=-1)
+        img_array = img_array / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
 
-        # Предсказание
         predictions = model.predict(img_array)
-        # Расстояние до каждого класса
         distances = np.linalg.norm(predictions - np.eye(num_classes), axis=1)
-        verdict = np.argmax(predictions)  # Вердикт по классу
+        verdict = np.argmax(predictions)
 
         return distances, verdict
 
-    def get_annotated_json(image_path: str, workDirectory: str, model_path: str = "static/neuralModels/golen.pt'"):
+    @staticmethod
+    def get_annotated_json_onnx(image_path: str, workDirectory: str, model_path: str = "static/neuralModels/golen.onnx"):
+        """
+        Генерирует файл JSON с разметкой, полученной из ONNX YOLO модели.
+
+        :param image_path: Путь к изображению, для которого выполняется предсказание.
+        :param workDirectory: Каталог, куда сохранить файл разметки.
+        :param model_path: Путь к файлу модели YOLO (по умолчанию 'golen.pt').
+        """
+        detections = ONNXYOLO.run_yolo_onnx(image_path, model_path)
+
+        if not detections:
+            raise Exception(
+                "Не удалось сформировать JSON разметку для изображения. Попробуйте загрузить вручную")
+
+        shapes = []
+        for det in detections:
+            x1, y1, x2, y2 = det["bbox"]
+            class_id = det["class_id"]
+            label = f"class_{class_id}"
+
+            # Преобразуем прямоугольник в формат 4-х точек (как полигон)
+            points = [
+                [x1, y1],
+                [x2, y1],
+                [x2, y2],
+                [x1, y2]
+            ]
+
+            shapes.append({
+                "label": label,
+                "text": "",
+                "points": points,
+            })
+
+        json_data = {
+            "version": "0.3.3",
+            "flags": {},
+            "shapes": shapes
+        }
+
+        os.makedirs(workDirectory, exist_ok=True)
+        base_name = os.path.splitext(os.path.basename(image_path))[0]
+        json_path = os.path.join(workDirectory, f"{base_name}.json")
+
+        with open(json_path, 'w') as f:
+            json.dump(json_data, f, indent=2)
+
+        return json_path
+
+    def get_annotated_json_pt(image_path: str, workDirectory: str, model_path: str = "static/neuralModels/golen.pt'"):
         """
         Генерирует файл JSON с разметкой, полученной из YOLO модели.
 
@@ -419,8 +427,13 @@ class RegeneratePresenter:
         os.makedirs(output_dir, exist_ok=True)
 
         if json_path == '':
-            json_path = RegeneratePresenter.get_annotated_json(
-                img_path, workDirectory, 'static/neuralModels/'+model_name)
+            # Если модель .pt
+            if (RegeneratePresenter.get_model_extension(model_name)):
+                json_path = RegeneratePresenter.get_annotated_json_pt(
+                    img_path, workDirectory, 'static/neuralModels/'+model_name)
+            else:
+                json_path = RegeneratePresenter.get_annotated_json_onnx(
+                    img_path, workDirectory, 'static/neuralModels/'+model_name)
 
         avg_color_in_square_points = []
         img = cv2.imread(img_path)
@@ -468,22 +481,60 @@ class RegeneratePresenter:
         cropped_potencial_regenerate = RegeneratePresenter.generate_img_by_square_nums(
             img_for_cut_regenerat, square_list_data_coord, regenerat_serment)
         regenerate_output_path = os.path.join(output_dir, "regenerat.png")
+
         regenerate_save_image = cv2.cvtColor(
             cropped_potencial_regenerate, cv2.COLOR_BGR2RGB)
+
         regenerate_save_image_pil = Image.fromarray(regenerate_save_image)
         regenerate_save_image_pil.save(regenerate_output_path)
 
-        class_verdict = RegeneratePresenter.get_verdict_of_result(
+        class_verdict, distances, example_images = RegeneratePresenter.get_verdict_of_result(
             cropped_potencial_regenerate)
 
-        return img_path, equlid_r, regenerat_serment, regenerate_output_path, squares_path, class_verdict
+        return img_path, equlid_r, regenerat_serment, regenerate_output_path, squares_path, class_verdict, distances, example_images
 
     def get_verdict_of_result(cropped_potencial_regenerate):
         model = load_model('static/neuralModels/test_analyz_regenerat.h5')
         distances, verdict = RegeneratePresenter.analyze_patology_regenert(
             cropped_potencial_regenerate, model, 3)
-        class_names = ['полость', 'норма', 'исчерченность']
-        if (verdict >= 0 and verdict < 3):
-            return 'класс ' + str(verdict) + ' - ' + class_names[verdict]
+        print(distances)
+
+        user = User.query.get(int(verdict))
+
+        class_names = ['Полость', 'Норма', 'Исчерченность']
+        distances_result = ""
+
+        for name, dist in zip(class_names, distances):
+            distances_result += f"""
+            <p><strong>{name}:</strong> расстояние до класса — {dist:.3f}</p>
+            """
+
+        example_images = RegeneratePresenter.get_output_examples_path(verdict)
+
+        if (verdict >= 0 and verdict < 3) and user:
+            return user.description, distances_result, example_images
         else:
-            return "не определено"
+            return "", distances, example_images
+
+    def get_output_examples_path(verdict):
+        if 0 <= verdict < 3:
+            class_names = ['polost', 'norma', 'isch']
+            dir_path = os.path.join(
+                "static", "output_information", class_names[verdict])
+            if os.path.exists(dir_path):
+                files = [os.path.join(dir_path, f) for f in os.listdir(dir_path)
+                         if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp'))]
+                return sorted(files)[:3]
+        return []
+
+    def get_model_extension(filename):
+        if not isinstance(filename, str):
+            raise ValueError("Неизвестный файл модели")
+
+        if filename.endswith('.pt'):
+            return True
+        elif filename.endswith('.onnx'):
+            return False
+        else:
+            raise ValueError(
+                "Неподдерживаемое расширение файла нейросетевой модели. Используйте .pt или .onnx")

@@ -1,8 +1,5 @@
 from PIL import Image
-from shapely import MultiPolygon
-from shapely.geometry import Polygon
-from scipy.spatial import ConvexHull
-import torch
+# from scipy.spatial import ConvexHull
 import cv2
 from matplotlib import image
 from matplotlib import pyplot as plt
@@ -15,8 +12,6 @@ import numpy as np
 import math
 import random
 import tensorflow as tf
-
-from tensorflow.keras.utils import load_img, img_to_array
 
 
 class KernelLinePresenter:
@@ -330,11 +325,6 @@ class KernelLinePresenter:
         plt.switch_backend('Agg')
         points = KernelLinePresenter.getBounds(imageName)
         points = points[0]
-
-        # topPoint, bottomPoint = getBorderPositions(points)
-        # topPoint = tf.keras.models.load_model(
-        #     "keras/highPoint.keras")
-        # bottomPoint = tf.keras.models.load_model("keras/lowPoint.keras")
 
         # points_array = np.array(points)
         points_array = KernelLinePresenter.prepare_input(points)

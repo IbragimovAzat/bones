@@ -3,8 +3,9 @@
 {% block content %}
 <div class="container py-4">
     <div class="mb-4">
-        <p class="fs-5 fw-semibold">Регенерат обнаружен в квадратах: {{ result[0][2] }}</p>
-        <p class="fs-5 fw-semibold">Вердикт: {{ result[0][5] }}</p>
+        <!--<p class="fs-5 fw-semibold">Регенерат обнаружен в квадратах: {{ result[0][2] }}</p>-->
+        <p class="fs-5 fw-semibold">Рассстояния до классов {{ result[0][6]|safe }}</p>
+        <p class="fs-5 fw-semibold">Вердикт {{ result[0][5]|safe }}</p>
     </div>
 
     <div class="row mb-4 g-4">
@@ -21,6 +22,19 @@
             </figure>
         </div>
     </div>
+
+    <div class="container my-4">
+        <h5 class="text-center mb-4">Примеры изображений для распознанной патологии</h5>
+        <div class="row justify-content-center">
+            {% for img in result[0][7] %}
+            <div class="col-12 col-md-4 mb-3 d-flex justify-content-center">
+                <img src="{{ url_for('static', filename=img.split('static/')[-1]) }}" 
+                     class="img-fluid rounded shadow-sm" style="max-height: 300px;" alt="example">
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
 
     <div class="row">
         <div class="col text-center">

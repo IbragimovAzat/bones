@@ -7,9 +7,7 @@ import math
 from ultralytics import YOLO
 import os
 
-from matplotlib import image
-from datetime import datetime
-import shutil
+# from matplotlib import image
 
 # Результат применения модели к изображению
 
@@ -377,36 +375,34 @@ class RegeneratePresenter:
 
         return distances, verdict
 
-    def get_annotated_json(image_path: str, workDirectory: str, model_path: str = "static/neuralModels/golen.pt'"):
+    @staticmethod
+    def get_annotated_json(image_path: str, workDirectory: str, model_path: str = "static/neuralModels/golen.onnx"):
         """
-        Генерирует файл JSON с разметкой, полученной из YOLO модели.
+        Генерирует файл JSON с разметкой, полученной из ONNX YOLO модели.
 
         :param image_path: Путь к изображению, для которого выполняется предсказание.
         :param workDirectory: Каталог, куда сохранить файл разметки.
         :param model_path: Путь к файлу модели YOLO (по умолчанию 'golen.pt').
         """
-        # Загрузка модели
-        model = YOLO(model_path)
+        detections = ONNXYOLO.run_yolo_onnx(image_path, model_path)
 
-        # Предсказание
-        results = model.predict(image_path, save=False,
-                                save_txt=False, save_conf=False)
-
-        # Предполагаем, что интересует только первый результат
-        result = results[0]
-        print(result)
-
-        if result.boxes is None or result.boxes.xyxy is None or len(result.boxes) <= 0:
+        if not detections:
             raise Exception(
                 "Не удалось сформировать JSON разметку для изображения. Попробуйте загрузить вручную")
-            return
 
         shapes = []
+        for det in detections:
+            x1, y1, x2, y2 = det["bbox"]
+            class_id = det["class_id"]
+            label = f"class_{class_id}"
 
-        for mask, cls_id in zip(result.masks.xy, result.boxes.cls):
-            # Преобразуем точки маски к формату (x, y)
-            points = [[float(x), float(y)] for x, y in mask]
-            label = model.names[int(cls_id)]
+            # Преобразуем прямоугольник в формат 4-х точек (как полигон)
+            points = [
+                [x1, y1],
+                [x2, y1],
+                [x2, y2],
+                [x1, y2]
+            ]
 
             shapes.append({
                 "label": label,
@@ -414,21 +410,16 @@ class RegeneratePresenter:
                 "points": points,
             })
 
-        # Формируем структуру JSON
         json_data = {
             "version": "0.3.3",
             "flags": {},
             "shapes": shapes
         }
 
-        # Убедимся, что каталог существует
         os.makedirs(workDirectory, exist_ok=True)
-
-        # Формируем имя файла на основе изображения
         base_name = os.path.splitext(os.path.basename(image_path))[0]
         json_path = os.path.join(workDirectory, f"{base_name}.json")
 
-        # Сохраняем JSON
         with open(json_path, 'w') as f:
             json.dump(json_data, f, indent=2)
 
