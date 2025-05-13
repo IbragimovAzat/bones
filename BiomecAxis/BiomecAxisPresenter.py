@@ -100,32 +100,33 @@ class BiomecAxisPresenter:
         #     pad_len = MAX_POINTS - current_len
         #     padding = np.zeros((pad_len, 2))
         #     points = np.concatenate([points, padding], axis=0)
-        MAX_POINTS = 100
-        points = np.array(points)  # замените на свой массив
-        current_len = len(points)
 
-        if current_len > MAX_POINTS:
-            # Вычисляем шаг (каждую k-ю точку оставить)
-            step = current_len // MAX_POINTS
-            # Срезаем с шагом, чтобы получить равномерно распределённые точки
-            reduced = points[::step]
+        # MAX_POINTS = 100
+        # points = np.array(points)  # замените на свой массив
+        # current_len = len(points)
 
-            # Если всё ещё больше 100 из-за округления, обрезаем
-            if len(reduced) > MAX_POINTS:
-                reduced = reduced[:MAX_POINTS]
-            # Если меньше 100 — добираем из оставшихся
-            elif len(reduced) < MAX_POINTS:
-                remaining = MAX_POINTS - len(reduced)
-                extras = points[1::step][:remaining]
-                reduced = np.vstack([reduced, extras])
+        # if current_len > MAX_POINTS:
+        #     # Вычисляем шаг (каждую k-ю точку оставить)
+        #     step = current_len // MAX_POINTS
+        #     # Срезаем с шагом, чтобы получить равномерно распределённые точки
+        #     reduced = points[::step]
 
-            points = reduced
+        #     # Если всё ещё больше 100 из-за округления, обрезаем
+        #     if len(reduced) > MAX_POINTS:
+        #         reduced = reduced[:MAX_POINTS]
+        #     # Если меньше 100 — добираем из оставшихся
+        #     elif len(reduced) < MAX_POINTS:
+        #         remaining = MAX_POINTS - len(reduced)
+        #         extras = points[1::step][:remaining]
+        #         reduced = np.vstack([reduced, extras])
 
-        elif current_len < MAX_POINTS:
-            # Добавляем нули до нужного размера
-            pad_len = MAX_POINTS - current_len
-            padding = np.zeros((pad_len, 2))
-            points = np.concatenate([points, padding], axis=0)
+        #     points = reduced
+
+        # elif current_len < MAX_POINTS:
+        #     # Добавляем нули до нужного размера
+        #     pad_len = MAX_POINTS - current_len
+        #     padding = np.zeros((pad_len, 2))
+        #     points = np.concatenate([points, padding], axis=0)
 
         data = [
             285.5932203389831, 324.5762711864407, 347.4576271186441, 374.5762711864407,
@@ -326,20 +327,20 @@ class BiomecAxisPresenter:
         ]
 
         # Преобразуем в массив NumPy
-        # points = np.array(points)
+        points = np.array(points)
 
-        # line = LineString(points)
-        # simp_line = line.simplify(tolerance=2.0)
-        # simp_pts = np.array(simp_line.coords)
+        line = LineString(points)
+        simp_line = line.simplify(tolerance=2.0)
+        simp_pts = np.array(simp_line.coords)
 
         # Ресемплинг по длине с U-образным распределением
-        # dists = np.sqrt(((points[1:]-points[:-1])**2).sum(axis=1))
-        # cum = np.concatenate(([0], np.cumsum(dists)))
-        # cum /= cum[-1]
-        # t_vals = beta.ppf(np.linspace(0, 1, 100), 0.5, 0.5)
-        # new_x = np.interp(t_vals, cum, points[:, 0])
-        # new_y = np.interp(t_vals, cum, points[:, 1])
-        # new_pts = np.vstack([new_x, new_y]).T
+        dists = np.sqrt(((points[1:]-points[:-1])**2).sum(axis=1))
+        cum = np.concatenate(([0], np.cumsum(dists)))
+        cum /= cum[-1]
+        t_vals = beta.ppf(np.linspace(0, 1, 100), 0.5, 0.5)
+        new_x = np.interp(t_vals, cum, points[:, 0])
+        new_y = np.interp(t_vals, cum, points[:, 1])
+        new_pts = np.vstack([new_x, new_y]).T
 
         # Проверяем количество точек
         # print(f"Количество точек: {len(new_pts)}")  # 141 точка
@@ -348,8 +349,8 @@ class BiomecAxisPresenter:
         # points = points[:100]
 
         # Извлекаем x и y координаты
-        # xs = new_pts[:, 0]  # Первые 100 x-координат
-        # ys = new_pts[:, 1]  # Первые 100 y-координат
+        xs = new_pts[:, 0]  # Первые 100 x-координат
+        ys = new_pts[:, 1]  # Первые 100 y-координат
 
         # удалить
         # if len(xs) > MAX_POINTS*2:
@@ -370,14 +371,13 @@ class BiomecAxisPresenter:
         # xs = data[:100]
         # ys = data[100:200]
 
-        xs, ys = points[:, 0], points[:, 1]
+        # xs, ys = points[:, 0], points[:, 1]
 
         points_result = np.concatenate([xs, ys])
         # print(len(points_result))
         # points_flat = points_result.flatten()  # (100, 2) -> (200,)
 
         points_input = np.expand_dims(points_result, axis=0)
-        print(points_input.shape)
 
         # points_flat = points_result.flatten()  # (100, 2) -> (200,)
         # points_input = np.expand_dims(points_flat, axis=0)
