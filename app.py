@@ -7,6 +7,7 @@ import shutil
 from Regenerat.RegenerateRouter import RegenerateRouter
 from Regenerat.RegeneratePresenter import RegeneratePresenter
 from kernelLine.KernelLinePresenter import KernelLinePresenter
+from BiomecAxis.BiomecAxisPresenter import BiomecAxisPresenter
 
 from database.config import Config, init_db, update_db
 from database.models import db, User
@@ -129,7 +130,7 @@ def getGolenLine():
             file.save(file_path)
             try:
                 result = KernelLinePresenter.getGolenLine(temp_dir, file_path)
-                return render_template('results_golen.html', result=result)
+                return render_template('results.html', result=result)
             except Exception as e:
                 flash(f'Ошибка при обработке изображения: {e}')
                 return redirect(request.url)
@@ -415,6 +416,82 @@ def fetchRegenerateBedro():
             return redirect(request.url)
     else:
         return render_template('regeneratTemplate.html')
+
+
+@app.route('/bioAxis', methods=['GET', 'POST'])
+def fetchBioAxis():
+    if request.method == "POST":
+        image_files = request.files.getlist('images')
+        annotation_files = request.files.getlist('annotations')
+
+        if not image_files or all(f.filename == '' for f in image_files):
+            flash('Изображения не выбраны')
+            return redirect(request.url)
+
+        # Создаем временную директорию с меткой времени
+        # timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = "bio_axis"
+        # temp_dir = os.path.join(
+        #     app.config['UPLOAD_FOLDER'], f'session_{timestamp}')
+        temp_dir = os.path.join(
+            'static', app.config['UPLOAD_FOLDER'], f'session_{timestamp}')
+
+        os.makedirs(temp_dir, exist_ok=True)
+
+        annotation_map = {}
+
+        img_path = ""
+        annot_path = ""
+
+        # Очистка временной папки перед загрузкой новых файлов
+        for filename in os.listdir(temp_dir):
+            file_path = os.path.join(temp_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                flash(f'Ошибка при удалении файла {filename}: {e}')
+
+        # Сохраняем JSON-файлы с аннотациями в временную папку (если они загружены)
+        for annot in annotation_files:
+            if annot and annot.filename != '':
+                if annot.filename.endswith('.json'):
+                    annot_name = secure_filename(annot.filename)
+                    annot_path = os.path.join(temp_dir, annot_name)
+                    annot.save(annot_path)
+                    annotation_map[os.path.splitext(
+                        annot_name)[0]] = annot_path
+                else:
+                    flash(f'Файл {annot.filename} не является JSON')
+
+        results = []
+
+        # Сохраняем изображения в временную папку
+        for img in image_files:
+            if img and allowed_file(img.filename):
+                img_name = secure_filename(img.filename)
+                img_path = os.path.join(temp_dir, img_name)
+                img.save(img_path)
+            else:
+                flash(
+                    f'Файл {img.filename} не является поддерживаемым изображением')
+
+        try:
+            result = BiomecAxisPresenter.handle_data(
+                temp_dir, img_path, annot_path)
+            results.append(result)
+        except Exception as e:
+            flash(f'Ошибка при обработке: {e}')
+
+        if results:
+            flash('Файлы успешно загружены и обработаны')
+            return render_template('results_axis.html', result=results)
+        else:
+            return redirect(request.url)
+    else:
+        return render_template('bioAxis_template.html')
 
 
 if __name__ == '__main__':

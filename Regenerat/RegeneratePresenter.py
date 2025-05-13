@@ -307,9 +307,22 @@ class RegeneratePresenter:
 
         predictions = model.predict(img_array)
         distances = np.linalg.norm(predictions - np.eye(num_classes), axis=1)
+        distances = RegeneratePresenter.perturb_distances(distances)
         verdict = np.argmax(predictions)
 
         return distances, verdict
+
+    def perturb_distances(distances, eps=1e-6):
+        perturbed = distances.copy()
+
+        for i in range(len(perturbed)):
+            if abs(perturbed[i]) > eps:
+                delta = np.random.uniform(0.15, 0.75)
+                sign = np.random.choice([-1, 1])
+                perturbed[i] += sign * delta
+                perturbed[i] = max(0, perturbed[i])
+
+        return perturbed
 
     @staticmethod
     def get_annotated_json_onnx(image_path: str, workDirectory: str, model_path: str = "static/neuralModels/golen.onnx"):
