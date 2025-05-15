@@ -9,7 +9,7 @@ from Regenerat.RegeneratePresenter import RegeneratePresenter
 from kernelLine.KernelLinePresenter import KernelLinePresenter
 from BiomecAxis.BiomecAxisPresenter import BiomecAxisPresenter
 
-from database.config import Config, init_db, update_db
+from database.config import Config, init_db, update_db, init_db_bioAxis
 from database.models import db, User
 # from database import config
 
@@ -23,6 +23,7 @@ db.init_app(app)
 def create_tables():
     # init_db()
     # update_db()
+    # init_db_bioAxis()
     db.create_all()
 
 
@@ -298,7 +299,7 @@ def fetchRegenerateGolenOnnx():
 # TEST SAMPLE
 
 
-@app.route('/test_on_sample')
+@app.route('/regenerat/test_on_sample')
 def test_on_sample():
     test_img_dir = os.path.join('static', 'test_images')
     test_annot_dir = os.path.join('static', 'test_annotations')
@@ -492,6 +493,48 @@ def fetchBioAxis():
             return redirect(request.url)
     else:
         return render_template('bioAxis_template.html')
+
+
+@app.route('/bioAxis/test_on_sample')
+def test_on_sample_bioAxis():
+    test_img_dir = os.path.join('static', 'test_bioAxis')
+    # test_annot_dir = os.path.join('static', 'test_annotations')
+    # model_name = "golen.pt"
+
+    try:
+        # Получаем список всех .png файлов
+        img_files = [f for f in os.listdir(test_img_dir) if f.endswith('.jpg')]
+        if not img_files:
+            flash("Нет тестовых изображений в тестовой папке", "danger")
+            # return redirect(url_for('fetchRegenerateGolen'))
+            return
+
+        # Выбираем случайное изображение
+        chosen_img = random.choice(img_files)
+        img_path = os.path.join(test_img_dir, chosen_img)
+
+        # Находим json с таким же названием
+        # base_name = os.path.splitext(chosen_img)[0]
+        # annot_path = os.path.join(test_annot_dir, f"{base_name}.json")
+
+        # if not os.path.exists(annot_path):
+        #     flash(f"Разметка {base_name}.json не найдена", "warning")
+        #     annot_path = None  # можно вызывать анализ без аннотации, если допустимо
+
+        # Создаем временную директорию для вывода
+        temp_dir = os.path.join(
+            'static', app.config['UPLOAD_FOLDER'], f'session_test_bioAxis')
+        os.makedirs(temp_dir, exist_ok=True)
+
+        # Запускаем обработку
+        result = BiomecAxisPresenter.handle_data(temp_dir, img_path)
+
+        return render_template('results_axis.html', result=[result])
+
+    except Exception as e:
+        flash(f"Ошибка при тестировании на данных: {e}", "danger")
+        return
+        # return redirect(url_for('fetchRegenerateGolen'))
 
 
 if __name__ == '__main__':
